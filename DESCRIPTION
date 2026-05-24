@@ -1,0 +1,25 @@
+Package: cawCV
+Title: Cluster-Aware Cross-Validation Partitioning for Repeated-Measures
+    Predictors
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Joseph",
+           family = "Hagan",
+           email = "jlhagan@bcm.edu",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-3285-2131"))
+Description: Cluster-aware cross-validation partitioning for clinical
+    prediction models with repeated-measures predictors and subject-level
+    binary outcomes. Three partitioning strategies are provided: naive
+    observation-level k-fold, subject-level k-fold, and leave-one-cluster-out.
+    Pre-validation diagnostic functions report per-predictor intraclass
+    correlation and within-subject lag-1 autocorrelation to characterise
+    within-subject dependence before a partitioning strategy is chosen. The
+    partitioning functions return fold assignments only and are agnostic to
+    the modelling method and performance metric used downstream.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Imports: 
+    stats
