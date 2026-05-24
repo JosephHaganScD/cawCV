@@ -7,6 +7,17 @@ release.
 Cluster-aware cross-validation partitioning for clinical prediction models
 with repeated-measures predictors and subject-level binary outcomes.
 
+## Citation
+
+The methodology implemented in this package is described in a manuscript
+currently under review:
+
+Hagan JL. Quantifying the Optimism of Naive Cross-Validation for Binary
+Outcome Prediction with Repeated-Measures Predictors: A Simulation Study and
+Clinical Illustration. Manuscript under review, 2026.
+
+Until the manuscript is published, please cite this repository.
+
 ## Overview
 
 When a prediction model is built from data containing several observations per
