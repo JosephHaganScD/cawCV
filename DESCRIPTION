@@ -23,3 +23,5 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
     stats
+URL: https://github.com/JosephHaganScD/cawCV
+BugReports: https://github.com/JosephHaganScD/cawCV/issues
