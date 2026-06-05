@@ -9,14 +9,11 @@ with repeated-measures predictors and subject-level binary outcomes.
 
 ## Citation
 
-The methodology implemented in this package is described in a manuscript
-currently under review:
+The methodology implemented in this package is described in:
 
-Hagan JL. Quantifying the Optimism of Naive Cross-Validation for Binary
-Outcome Prediction with Repeated-Measures Predictors: A Simulation Study and
-Clinical Illustration. Manuscript under review, 2026.
+Hagan JL. Quantifying the Optimism of Naive Cross-Validation for Binary Outcome Prediction with Repeated-Measures Predictors: A Simulation Study and Clinical Illustration. medRxiv. 2026. https://doi.org/10.64898/2026.05.27.26354222
 
-Until the manuscript is published, please cite this repository.
+This manuscript is currently under review. Please cite this repository and the preprint until a journal reference is available.
 
 ## Overview
 
