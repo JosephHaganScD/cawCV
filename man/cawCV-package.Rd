@@ -10,6 +10,14 @@ Cluster-aware cross-validation partitioning and pre-validation diagnostics
 for clinical prediction models with repeated-measures predictors and
 subject-level binary outcomes.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/JosephHaganScD/cawCV}
+  \item Report bugs at \url{https://github.com/JosephHaganScD/cawCV/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Joseph Hagan \email{jlhagan@bcm.edu} (\href{https://orcid.org/0000-0002-3285-2131}{ORCID})
 
