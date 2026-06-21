@@ -1,0 +1,230 @@
+---
+title: "Cluster-aware cross-validation for repeated-measures predictors with binary outcomes"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Cluster-aware cross-validation for repeated-measures predictors with binary outcomes}
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+```
+
+```{r load}
+library(cawCV)
+```
+
+## The problem
+
+Clinical prediction models built from repeated-measures data carry an
+information-leakage problem that ordinary cross-validation does not address.
+When several measurements per subject are present in the data, and ordinary
+k-fold cross-validation partitions at the observation level, records from the
+same subject are routinely split between the training and the test set. Any
+within-subject signal that connects those records, whether the signal arises
+from a stable baseline characteristic, a subject-specific tendency that shifts
+the predictor up or down, or temporal autocorrelation within a subject's
+record, can be exploited by the learner to recover information about the
+held-out observations from the training observations of the same subject. The
+performance estimate that results is optimistically biased relative to the
+performance the model will achieve on subjects who were not represented during
+training.
+
+Cluster-aware cross-validation removes this leakage at the source. Each
+subject's observations are kept together: either all in a training fold or
+all in a test fold. Reported performance then reflects what the model can be
+expected to achieve on subjects who were not seen during model development,
+which is the question clinical prediction is ordinarily trying to answer. The
+methodology underlying `cawCV` is treated in detail in Hagan (2026), which
+characterizes the optimism of naive cross-validation and quantifies the
+mechanisms involved.
+
+This vignette illustrates the practical workflow the package supports:
+diagnose within-subject dependence in the predictors, choose a partitioning
+strategy consistent with the diagnostics, and compare cross-validated
+performance under cluster-aware and naive strategies on the same data.
+
+## A synthetic example
+
+A small synthetic dataset is generated for illustration. The setting matches
+the common neonatal and pediatric scenario in which each subject contributes
+several measurements and the outcome is a single subject-level binary event.
+
+```{r data}
+set.seed(7777)
+n_subjects   <- 100
+obs_per_subj <- 10
+n_total      <- n_subjects * obs_per_subj
+subject_id   <- rep(seq_len(n_subjects), each = obs_per_subj)
+
+# Three predictors, each carrying a different kind of within-subject structure.
+# x_baseline is constant within subject, that is, a stable subject attribute.
+# x_random_intercept varies within subject around a per-subject mean.
+# x_ar1 varies within subject as a stationary AR(1) process with phi = 0.9,
+# anchored at 0 for each subject so that the within-subject autocorrelation
+# is the dominant feature of the series.
+x_baseline_per_subject  <- rnorm(n_subjects, mean = 0, sd = 1)
+x_intercept_per_subject <- rnorm(n_subjects, mean = 0, sd = 1)
+
+x_baseline         <- x_baseline_per_subject[subject_id]
+x_random_intercept <- x_intercept_per_subject[subject_id] +
+                      rnorm(n_total, mean = 0, sd = 0.7)
+
+phi      <- 0.9
+innov_sd <- sqrt(1 - phi^2)
+x_ar1 <- unlist(lapply(seq_len(n_subjects), function(i) {
+  series    <- numeric(obs_per_subj)
+  series[1] <- rnorm(1, mean = 0, sd = innov_sd)
+  for (t in 2:obs_per_subj) {
+    series[t] <- phi * series[t - 1] + rnorm(1, mean = 0, sd = innov_sd)
+  }
+  series
+}))
+
+# Outcome is driven by the within-subject PEAK of x_ar1, not by its
+# subject-level mean. This is the relevant pattern for clinical prediction
+# from autocorrelated repeated measurements, in which an event is triggered
+# by a sustained or extreme excursion rather than by an average level. The
+# observation-level predictor x_ar1 therefore carries direct prognostic
+# information that varies within subject through time.
+x_ar1_peak <- tapply(x_ar1, subject_id, max)
+
+linpred  <- -1.5 + 0.6 * x_baseline_per_subject +
+                   0.4 * x_intercept_per_subject +
+                   1.5 * x_ar1_peak
+prob     <- 1 / (1 + exp(-linpred))
+y_subj   <- rbinom(n_subjects, size = 1, prob = prob)
+y        <- y_subj[subject_id]
+
+dat <- data.frame(
+  subject            = subject_id,
+  x_baseline         = x_baseline,
+  x_random_intercept = x_random_intercept,
+  x_ar1              = x_ar1,
+  y                  = y
+)
+head(dat, 4)
+table(outcome = y_subj)
+```
+
+The dataset contains `r nrow(dat)` observations on `r n_subjects` subjects,
+with each subject contributing `r obs_per_subj` measurements and one
+outcome.
+
+## Diagnose before you partition
+
+`predictor_icc()` reports the intraclass correlation of each predictor across
+subjects: the share of total variance that lies between subjects rather than
+within them. `predictor_lag1()` reports the within-subject lag-1
+autocorrelation summarised across subjects. The two diagnostics target the
+two main routes by which observation-level cross-validation leaks
+information.
+
+```{r diagnostics}
+predictor_icc(dat,
+              predictors = c("x_baseline", "x_random_intercept", "x_ar1"),
+              cluster    = dat$subject)
+
+predictor_lag1(dat,
+               predictors = c("x_baseline", "x_random_intercept", "x_ar1"),
+               cluster    = dat$subject)
+```
+
+The diagnostic profile is as constructed. `x_baseline` is constant within
+subject, so its intraclass correlation is at its ceiling and a within-subject
+lag-1 autocorrelation is not defined. `x_random_intercept` carries a
+substantial intraclass correlation, reflecting the per-subject mean shift,
+but its within-subject lag-1 autocorrelation is near zero. `x_ar1` carries a
+moderate intraclass correlation and a clearly elevated within-subject lag-1
+autocorrelation, the signature of an autocorrelated series. In all three
+cases, within-subject dependence is present, and the dependence would be
+exploited under naive observation-level cross-validation.
+
+## Compare partitioning strategies
+
+The two strategies compared here are naive observation-level k-fold
+partitioning, which ignores subject identity, and subject-level k-fold
+partitioning, which keeps each subject's observations together. Both
+partitions use five folds and the same seed so the comparison reflects the
+strategy and not the random draw.
+
+```{r partitions}
+partition_naive <- partition_naive_kfold(dat$subject, k = 5, seed = 1)
+partition_subj  <- partition_subject_kfold(dat$subject, k = 5, seed = 1)
+
+partition_naive
+partition_subj
+```
+
+For each strategy, a logistic regression of the binary outcome on the three
+predictors is fit on the training fold and the area under the receiver
+operating characteristic curve is computed on the held-out fold. The mean
+across folds is the cross-validated estimate of discrimination.
+
+```{r auroc-helper}
+# A compact base-R AUROC computation, equivalent to the Mann-Whitney U
+# statistic divided by the count of positive-negative pairs. No external
+# package is required.
+auroc <- function(prob, outcome) {
+  pos <- prob[outcome == 1]
+  neg <- prob[outcome == 0]
+  if (length(pos) == 0 || length(neg) == 0) return(NA_real_)
+  pairs <- outer(pos, neg, FUN = function(a, b) {
+    (a > b) + 0.5 * (a == b)
+  })
+  mean(pairs)
+}
+
+cv_auroc <- function(partition, data) {
+  out <- numeric(n_folds(partition))
+  for (f in seq_len(n_folds(partition))) {
+    idx <- get_fold(partition, f)
+    fit <- glm(y ~ x_baseline + x_random_intercept + x_ar1,
+               data   = data[idx$train, ],
+               family = binomial())
+    p   <- predict(fit, newdata = data[idx$test, ], type = "response")
+    out[f] <- auroc(p, data$y[idx$test])
+  }
+  out
+}
+```
+
+```{r run-cv}
+naive_aurocs <- cv_auroc(partition_naive, dat)
+subj_aurocs  <- cv_auroc(partition_subj,  dat)
+
+data.frame(
+  strategy       = c("naive observation-level k-fold",
+                     "subject-level k-fold"),
+  mean_auroc     = c(mean(naive_aurocs), mean(subj_aurocs)),
+  sd_across_folds = c(sd(naive_aurocs),  sd(subj_aurocs))
+)
+```
+
+The naive observation-level strategy returns the higher mean cross-validated
+area under the curve on this dataset. The difference is the optimism
+introduced by the leakage of within-subject information into the held-out
+folds. The subject-level estimate reflects performance on subjects who were
+not seen during model development, which is the question clinical prediction
+is ordinarily trying to answer. A formal characterization of this optimism,
+including its dependence on intraclass correlation, autocorrelation, and the
+number of records per subject, is given in Hagan (2026).
+
+A third partitioning strategy, leave-one-cluster-out, is available through
+`partition_loco()` for settings in which the number of subjects is small
+enough to make an exhaustive cluster-aware comparison practical. Future
+package releases will add further pre-validation diagnostics and partitioning
+strategies as the underlying methodological work is published.
+
+## Reference
+
+Hagan JL. Quantifying the Optimism of Naive Cross-Validation for Binary
+Outcome Prediction with Repeated-Measures Predictors: A Simulation Study and
+Clinical Illustration. medRxiv. 2026.
+https://doi.org/10.64898/2026.05.27.26354222
