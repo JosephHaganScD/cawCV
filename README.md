@@ -1,19 +1,9 @@
 # cawCV
 
-**Development status: prototype.** This package is under active development.
-The application programming interface may change before the first tagged
-release.
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20789601.svg)](https://doi.org/10.5281/zenodo.20789601)
 
 Cluster-aware cross-validation partitioning for clinical prediction models
 with repeated-measures predictors and subject-level binary outcomes.
-
-## Citation
-
-The methodology implemented in this package is described in:
-
-Hagan JL. Quantifying the Optimism of Naive Cross-Validation for Binary Outcome Prediction with Repeated-Measures Predictors: A Simulation Study and Clinical Illustration. medRxiv. 2026. https://doi.org/10.64898/2026.05.27.26354222
-
-This manuscript is currently under review. Please cite this repository and the preprint until a journal reference is available.
 
 ## Overview
 
@@ -81,17 +71,28 @@ str(fold1)
 
 ## Development status and roadmap
 
-`cawCV` is in prototype development. The current functions are stable in
-behaviour, but the interface is not yet frozen. Unit tests, a vignette, and
-submission to the Journal of Open Source Software are planned. Later releases
-will add further pre-validation diagnostics as the associated methodological
-work is published.
+`cawCV` v0.1.0 includes the partitioning and diagnostic functions documented
+above, a unit-test suite, and a package vignette. Submission to the Journal of
+Open Source Software is planned. Later releases will add further pre-validation
+diagnostics as the associated methodological work is published.
 
 ## Citation
 
-A methodological description of the cross-validation strategies implemented
-here is in preparation. Until a citation is available, please cite this
-repository.
+The methodology implemented in this package is described in:
+
+Hagan JL. Quantifying the Optimism of Naive Cross-Validation for Binary
+Outcome Prediction with Repeated-Measures Predictors: A Simulation Study and
+Clinical Illustration. medRxiv. 2026.
+https://doi.org/10.64898/2026.05.27.26354222
+
+The software itself is permanently archived on Zenodo:
+
+Hagan JL. cawCV: Cluster-Aware Cross-Validation for Repeated-Measures
+Predictors with Binary Outcomes [Software]. Zenodo. 2026.
+https://doi.org/10.5281/zenodo.20789601
+
+The manuscript is currently under review. Please cite both the preprint and
+the Zenodo archive until a peer-reviewed journal reference is available.
 
 ## License
 
