@@ -1,0 +1,17 @@
+bibentry(
+  bibtype = "Manual",
+  title   = "cawCV: Cluster-Aware Cross-Validation for Repeated-Measures Predictors with Binary Outcomes",
+  author  = person(given = "Joseph", family = "Hagan",
+                   email = "jlhagan@bcm.edu",
+                   comment = c(ORCID = "0000-0002-3285-2131")),
+  year    = "2026",
+  note    = "R package",
+  doi     = "10.5281/zenodo.20789601",
+  url     = "https://doi.org/10.5281/zenodo.20789601",
+  textVersion = paste(
+    "Hagan JL (2026). cawCV: Cluster-Aware Cross-Validation for ",
+    "Repeated-Measures Predictors with Binary Outcomes [R package]. ",
+    "Zenodo. https://doi.org/10.5281/zenodo.20789601",
+    sep = ""
+  )
+)
